@@ -140,7 +140,6 @@ namespace ContosoUniversity.Controllers
 
             var student = await _context.Students
                 .FirstOrDefaultAsync(m => m.ID == id);
-
             if (student == null)
             {
                 return NotFound();
@@ -152,17 +151,29 @@ namespace ContosoUniversity.Controllers
         // POST: Students/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public async Task<IActionResult> DeleteConfirmed(int id, bool saveChangesError = false)
         {
             var student = await _context.Students.FindAsync(id);
-            _context.Students.Remove(student);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
+            if (student == null)
+            {
+                return RedirectToAction(nameof(Index));
+            }
 
-        private bool StudentExists(int id)
-        {
-            return _context.Students.Any(e => e.ID == id);
+            try
+            {
+                _context.Students.Remove(student);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Index));
+            }
+            catch (DbUpdateException /* ex */)
+            {
+                //Log the error (uncomment ex variable name and write a log.)
+                ViewData["ErrorMessage"] =
+                    "Delete failed. Try again, and if the problem persists " +
+                    "see your system administrator.";
+                return RedirectToAction(nameof(Delete), new { id, saveChangesError = true });
+            }
         }
     }
 }
+
