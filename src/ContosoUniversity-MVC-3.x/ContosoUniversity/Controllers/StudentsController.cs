@@ -20,9 +20,29 @@ namespace ContosoUniversity.Controllers
         }
 
         // GET: Students
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string sortOrder, string searchString)
         {
-            return View(await _context.Students.ToListAsync());
+            ViewData["NameSortParm"] = string.IsNullOrEmpty(sortOrder) ? "name_desc" : "";
+            ViewData["DateSortParm"] = sortOrder == "Date" ? "date_desc" : "Date";
+            ViewData["CurrentFilter"] = searchString;
+
+            var students = from s in _context.Students
+                           select s;
+
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                students = students.Where(s => s.LastName.Contains(searchString)
+                                        || s.FirstMidName.Contains(searchString));
+            }
+
+            students = sortOrder switch
+            {
+                "name_desc" => students.OrderByDescending(s => s.LastName),
+                "Date" => students.OrderBy(s => s.EnrollmentDate),
+                "date_desc" => students.OrderByDescending(s => s.EnrollmentDate),
+                _ => students.OrderBy(s => s.LastName),
+            };
+            return View(await students.AsNoTracking().ToListAsync());
         }
 
         // GET: Students/Details/5
